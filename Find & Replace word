@@ -1,0 +1,83 @@
+#include <string>
+#include <regex>
+#include <dirent.h>
+#include <iostream>
+#include <fstream>
+#include <vector>
+using namespace std;
+vector<string> split(string str, string token){
+    vector<string>result;
+    while(str.size()){
+        int index = str.find(token);
+        if(index!=string::npos){
+            result.push_back(str.substr(0,index));
+            str = str.substr(index+token.size());
+            if(str.size()==0)result.push_back(str);
+        }else{
+            result.push_back(str);
+            str = "";
+        }
+    }
+    return result;
+}
+int main()
+{
+    cout<<"Directory Path:"<<endl;
+    string directory_path;
+    getline(cin,directory_path);
+    cout<<"Word to be replaced:"<<endl;
+    string replaceStr;
+    cin>>replaceStr;
+    cout<<"Word to replace with:"<<endl;
+    string replacementStr;
+    cin>>replacementStr;
+
+    DIR *dir;
+    struct dirent *ent;
+    if ((dir = opendir (directory_path.c_str())) != NULL) {
+    while ((ent = readdir (dir)) != NULL) {
+    string path=directory_path+"\\"+ent->d_name;
+    if(path.size()<4||(path.substr(path.size()-4,path.size())!=".txt")){
+        continue;
+    }
+    string tempfilename=directory_path+"\\temp.txt";
+
+    ifstream file(path);
+    ofstream temp(tempfilename);
+    string words_in_a_line;
+    string frontend="[^a-zA-Z0-9](" + replaceStr + ")";
+    string backend="(" + replaceStr + ")[^a-zA-Z0-9]";
+    string both="[^a-zA-Z0-9](" + replaceStr + ")[^a-zA-Z0-9]";
+    regex front_regex(frontend);
+    regex back_regex(backend);
+    regex front_back_regex(both);
+    while(getline(file,words_in_a_line)){
+    vector separate_word = split(words_in_a_line," ");
+    for(int i=0;i<separate_word.size();i++){
+    if(separate_word.at(i)==replaceStr){
+        separate_word.at(i)=replacementStr;
+    }
+    else if(regex_match(separate_word.at(i),back_regex)){
+     separate_word.at(i)=replacementStr+separate_word.at(i).back();
+    }
+    else if(regex_match(separate_word.at(i),front_regex)){
+        separate_word.at(i)=separate_word.at(i).front()+replacementStr;
+    }
+    else if(regex_match(separate_word.at(i),front_back_regex)){
+     separate_word.at(i)=separate_word.at(i).front()+replacementStr+separate_word.at(i).back();
+    }
+    temp<<separate_word.at(i)+" ";
+    }
+    temp<<"\n";
+    }
+
+    file.close();
+    temp.close();
+    int deletefile = remove(path.c_str());
+    int renamefile = rename(tempfilename.c_str(),path.c_str());
+    }
+
+    }
+
+    return 0;
+}
